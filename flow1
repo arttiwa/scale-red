@@ -1,0 +1,542 @@
+[
+    {
+        "id": "6f0b3b8767fe8d76",
+        "type": "tab",
+        "label": "Flow 6",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "1abef2ef965255c8",
+        "type": "http request",
+        "z": "6f0b3b8767fe8d76",
+        "name": "cat",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://catfact.ninja/fact",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 350,
+        "y": 300,
+        "wires": [
+            [
+                "7a15866132ed61e9"
+            ]
+        ]
+    },
+    {
+        "id": "7a15866132ed61e9",
+        "type": "function",
+        "z": "6f0b3b8767fe8d76",
+        "name": "getData",
+        "func": "let w = 56.50;\nlet no = 80;\nlet acc = 5;\n\nlet calNo = 0;\nlet calAcc = 0;\nif (msg.payload) {\n    calNo = w - Math.ceil((no / 100) * w);\n    calAcc = Math.ceil((acc / 100) * w);\n\n    msg.target = {\n        wt: w,\n        percentNoti: calNo,\n        percentAcc: calAcc\n    };\n\n    msg.payload = \"\";\n    msg.topic = \"api\";\n\n}\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 300,
+        "wires": [
+            [
+                "1a8155d9a8021f57"
+            ]
+        ]
+    },
+    {
+        "id": "9c079170e565ccd6",
+        "type": "debug",
+        "z": "6f0b3b8767fe8d76",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1010,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "5a728db781912b38",
+        "type": "function",
+        "z": "6f0b3b8767fe8d76",
+        "name": "Generate Weight Data",
+        "func": "if (!context.weight) {\n    context.weight = 0;\n    context.increaseRate = Math.floor(Math.random() * 10);\n}\n\nconst maxWeight = 100.0;\nconst incrementThreshold = 100.0;\n\ncontext.weight += context.increaseRate;\n\nif (context.weight >= incrementThreshold) {\n    context.increaseRate = Math.random() * 0.5 + 0.1;\n    context.weight = 0;\n}\n\nconst weight = Math.min(context.weight, maxWeight);\n\nconst payload = `PT,GS      ${weight.toFixed(2)},kg`;\n\nmsg.payload = payload;\nmsg.weight = weight;\nmsg.topic = \"function\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 380,
+        "wires": [
+            [
+                "28dfbba5d048b17e"
+            ]
+        ]
+    },
+    {
+        "id": "1a8155d9a8021f57",
+        "type": "function",
+        "z": "6f0b3b8767fe8d76",
+        "name": "Hold and Compare Data",
+        "func": "if (!context.apiData) {\n    context.apiData = null;\n    context.countT = null;\n    context.wtt = null;\n}\n\nif (msg.topic === 'api') {\n    context.apiData = msg.target;\n    context.countT = 0;\n    console.log(context.apiData);\n    return null;\n} else if (msg.topic === 'function') {\n    var functionData = msg.weight;\n    if (context.apiData) {\n        var apiData = context.apiData;\n        var countT = context.countT;\n        var wttO = context.wtt;\n        var comparisonResult;\n\n        var diff = Math.abs((apiData.wt * 100) - (functionData * 100));\n        if (diff <= (apiData.percentAcc * 100)) {\n            // Green\n            comparisonResult = `Match! API Data: ${apiData.wt}, Function Data: ${functionData}`;\n\n            if (countT >= 5) {\n                msg.payload = {\n                    functionData: functionData,\n                    comparisonResult: comparisonResult\n                };\n                msg.topic = 'send'\n\n                // Reset context to wait for new API data\n                context.apiData = null;\n                context.countT = null;\n                context.wtt = null;\n\n                return msg;\n            } else {\n                var diffT = null;\n                var diffA = null;\n\n                if (context.wtt) {\n                    diffT = Math.abs((context.wtt * 100) - (functionData * 100));\n                    diffA = Math.abs((context.wtt * 100) - (apiData.wt * 100));\n                    console.log(\"T T T context.wtt\")\n                } else {\n                    console.log(\"X X X context.wtt\")\n                }\n\n\n\n\n\n                if (context.countT == 0) {\n                    context.countT++;\n                    context.wtt = functionData;\n                    console.log(\"first count\\n\")\n                } else if (context.countT > 0 && diffT, diffA != null && diffT, diffA <= 50) {\n                    //can acc changed\n                    console.log(\" diffT <= 0.5\\n\", diffT)\n                    context.wtt = functionData;\n                    context.countT++;\n\n\n                } else if (context.countT > 0 && diffT, diffA != null && diffT, diffA > 50) {\n                    //over acc changed\n                    console.log(\" diffT > 0.5\\n\", diffT)\n                    context.wtt = functionData;\n                    context.countT = 0;\n\n\n                } else {\n                    console.log(\"tf\", diffT)\n                }\n            }\n            console.log(\"countT == >\", countT,\"\\n\\n\\n\\n\\n\")\n\n        } else if (diff <= (apiData.percentNoti * 100)) {\n            // Orange\n            comparisonResult = `Becareful! API Data: ${apiData.wt}, Function Data: ${functionData}`;\n            context.countT = 0;\n        } else {\n            // Red\n            comparisonResult = `No Match. API Data: ${apiData.wt}, Function Data: ${functionData}`;\n            context.countT = 0;\n        }\n\n\n        msg.payload = {\n            apiData: apiData,\n            functionData: functionData,\n            comparisonResult: comparisonResult\n        };\n        return msg;\n    } else {\n        return {\n            payload: `Function Data: ${functionData} \\ncontext.apiData NO DATA`,\n            topic: 'req'\n        };\n    }\n}\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 750,
+        "y": 340,
+        "wires": [
+            [
+                "c9f66dba8c4371f7",
+                "3f818a5805459ef8"
+            ]
+        ]
+    },
+    {
+        "id": "b8f50909506060e2",
+        "type": "inject",
+        "z": "6f0b3b8767fe8d76",
+        "name": "Every 1 Second",
+        "props": [],
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "1",
+        "topic": "",
+        "x": 150,
+        "y": 380,
+        "wires": [
+            [
+                "5a728db781912b38"
+            ]
+        ]
+    },
+    {
+        "id": "c9f66dba8c4371f7",
+        "type": "debug",
+        "z": "6f0b3b8767fe8d76",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 850,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "e9d56392831c59f8",
+        "type": "debug",
+        "z": "6f0b3b8767fe8d76",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1270,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "3f818a5805459ef8",
+        "type": "switch",
+        "z": "6f0b3b8767fe8d76",
+        "name": "trigger",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "req",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "send",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 890,
+        "y": 260,
+        "wires": [
+            [
+                "1abef2ef965255c8"
+            ],
+            [
+                "9c079170e565ccd6",
+                "e8eec6eddcbfad8c"
+            ]
+        ]
+    },
+    {
+        "id": "6feceead283a6cdb",
+        "type": "inject",
+        "z": "6f0b3b8767fe8d76",
+        "name": "TriggerAPI",
+        "props": [
+            {
+                "p": "target.wt",
+                "v": "0.00",
+                "vt": "num"
+            },
+            {
+                "p": "target.percentNoti",
+                "v": "0.00",
+                "vt": "num"
+            },
+            {
+                "p": "target.percentAcc",
+                "v": "0.00",
+                "vt": "num"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 216.1999969482422,
+        "y": 264.1999816894531,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "e8eec6eddcbfad8c",
+        "type": "http request",
+        "z": "6f0b3b8767fe8d76",
+        "name": "",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://htt------pbin.org/post",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "data",
+                "valueType": "msg",
+                "valueValue": "weight"
+            }
+        ],
+        "x": 1110,
+        "y": 280,
+        "wires": [
+            [
+                "e9d56392831c59f8"
+            ]
+        ]
+    },
+    {
+        "id": "28dfbba5d048b17e",
+        "type": "debug",
+        "z": "6f0b3b8767fe8d76",
+        "name": "Debug",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 590,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "e8d998b71db3e42e",
+        "type": "inject",
+        "z": "6f0b3b8767fe8d76",
+        "name": "",
+        "props": [
+            {
+                "p": "weight",
+                "v": "56.1",
+                "vt": "num"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "function",
+        "x": 140,
+        "y": 460,
+        "wires": [
+            [
+                "1a8155d9a8021f57"
+            ]
+        ]
+    },
+    {
+        "id": "66628043b381bafc",
+        "type": "inject",
+        "z": "6f0b3b8767fe8d76",
+        "name": "",
+        "props": [
+            {
+                "p": "weight",
+                "v": "56.2",
+                "vt": "num"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "function",
+        "x": 140,
+        "y": 500,
+        "wires": [
+            [
+                "1a8155d9a8021f57"
+            ]
+        ]
+    },
+    {
+        "id": "19b72638eb64062d",
+        "type": "inject",
+        "z": "6f0b3b8767fe8d76",
+        "name": "",
+        "props": [
+            {
+                "p": "weight",
+                "v": "56.3",
+                "vt": "num"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "function",
+        "x": 140,
+        "y": 540,
+        "wires": [
+            [
+                "1a8155d9a8021f57"
+            ]
+        ]
+    },
+    {
+        "id": "2e0cb7e9771dd5cd",
+        "type": "inject",
+        "z": "6f0b3b8767fe8d76",
+        "name": "bomb",
+        "props": [
+            {
+                "p": "weight",
+                "v": "54.3",
+                "vt": "num"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "function",
+        "x": 130,
+        "y": 580,
+        "wires": [
+            [
+                "1a8155d9a8021f57"
+            ]
+        ]
+    },
+    {
+        "id": "e93a5a6addcdb986",
+        "type": "inject",
+        "z": "6f0b3b8767fe8d76",
+        "name": "bomb",
+        "props": [
+            {
+                "p": "weight",
+                "v": "12",
+                "vt": "num"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "function",
+        "x": 130,
+        "y": 620,
+        "wires": [
+            [
+                "1a8155d9a8021f57"
+            ]
+        ]
+    },
+    {
+        "id": "9fe34461721cf421",
+        "type": "http request",
+        "z": "6f0b3b8767fe8d76",
+        "name": "",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "",
+                "valueType": "other",
+                "valueValue": ""
+            }
+        ],
+        "x": 1130,
+        "y": 520,
+        "wires": [
+            [
+                "d2bdd69945482787"
+            ]
+        ]
+    },
+    {
+        "id": "6fe065d12587f1b1",
+        "type": "change",
+        "z": "6f0b3b8767fe8d76",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "url",
+                "pt": "msg",
+                "to": "https://catfact.ninja/fact",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "method",
+                "pt": "msg",
+                "to": "GET",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 920,
+        "y": 540,
+        "wires": [
+            [
+                "9fe34461721cf421"
+            ]
+        ]
+    },
+    {
+        "id": "d2bdd69945482787",
+        "type": "debug",
+        "z": "6f0b3b8767fe8d76",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1270,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "b51accb7b0d0e9b1",
+        "type": "inject",
+        "z": "6f0b3b8767fe8d76",
+        "name": "TriggerAPI",
+        "props": [
+            {
+                "p": "target.wt",
+                "v": "0.00",
+                "vt": "num"
+            },
+            {
+                "p": "target.percentNoti",
+                "v": "0.00",
+                "vt": "num"
+            },
+            {
+                "p": "target.percentAcc",
+                "v": "0.00",
+                "vt": "num"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 760,
+        "y": 540,
+        "wires": [
+            [
+                "6fe065d12587f1b1"
+            ]
+        ]
+    }
+]
