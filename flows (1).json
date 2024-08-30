@@ -1,0 +1,2319 @@
+[
+    {
+        "id": "d4b2dfd3ca24fca8",
+        "type": "tab",
+        "label": "rasp_scale",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "aa42eccbb313314a",
+        "type": "tab",
+        "label": "scale-sim",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "2f13d513c1bd14ae",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "377c7eaf4087f073",
+        "type": "serial-port",
+        "name": "",
+        "serialport": "/dev/serial0",
+        "serialbaud": "57600",
+        "databits": "8",
+        "parity": "none",
+        "stopbits": "1",
+        "waitfor": "",
+        "dtr": "none",
+        "rts": "none",
+        "cts": "none",
+        "dsr": "none",
+        "newline": "\\n",
+        "bin": "false",
+        "out": "char",
+        "addchar": "",
+        "responsetimeout": "10000"
+    },
+    {
+        "id": "47f2ef11584a184d",
+        "type": "serial-port",
+        "name": "",
+        "serialport": "/dev/serial0",
+        "serialbaud": "57600",
+        "databits": "8",
+        "parity": "none",
+        "stopbits": "1",
+        "waitfor": "",
+        "dtr": "none",
+        "rts": "none",
+        "cts": "none",
+        "dsr": "none",
+        "newline": "\\n",
+        "bin": "false",
+        "out": "char",
+        "addchar": "",
+        "responsetimeout": "10000"
+    },
+    {
+        "id": "serial-config-id",
+        "type": "serial-port",
+        "name": "",
+        "serialport": "/dev/ttyAMA0",
+        "serialbaud": "9600",
+        "databits": "8",
+        "parity": "none",
+        "stopbits": "1",
+        "waitfor": "",
+        "newline": "",
+        "bin": "false",
+        "out": "char",
+        "addchar": "false",
+        "responsetimeout": ""
+    },
+    {
+        "id": "f683b4631d9ed22b",
+        "type": "modbus-client",
+        "name": "HF2211",
+        "clienttype": "tcp",
+        "bufferCommands": true,
+        "stateLogEnabled": false,
+        "queueLogEnabled": false,
+        "failureLogEnabled": true,
+        "tcpHost": "192.168.23.94",
+        "tcpPort": "502",
+        "tcpType": "DEFAULT",
+        "serialPort": "/dev/ttyUSB",
+        "serialType": "RTU-BUFFERD",
+        "serialBaudrate": "9600",
+        "serialDatabits": "8",
+        "serialStopbits": "1",
+        "serialParity": "none",
+        "serialConnectionDelay": "100",
+        "serialAsciiResponseStartDelimiter": "0x3A",
+        "unit_id": "1",
+        "commandDelay": "1",
+        "clientTimeout": "1000",
+        "reconnectOnTimeout": true,
+        "reconnectTimeout": "1000",
+        "parallelUnitIdsAllowed": true,
+        "showErrors": false,
+        "showWarnings": true,
+        "showLogs": true
+    },
+    {
+        "id": "b62f8acee78410b1",
+        "type": "modbus-client",
+        "name": "HF2211A",
+        "clienttype": "tcp",
+        "bufferCommands": true,
+        "stateLogEnabled": false,
+        "queueLogEnabled": false,
+        "failureLogEnabled": true,
+        "tcpHost": "192.168.23.202",
+        "tcpPort": "502",
+        "tcpType": "DEFAULT",
+        "serialPort": "/dev/ttyUSB",
+        "serialType": "RTU-BUFFERD",
+        "serialBaudrate": "9600",
+        "serialDatabits": "8",
+        "serialStopbits": "1",
+        "serialParity": "none",
+        "serialConnectionDelay": "100",
+        "serialAsciiResponseStartDelimiter": "0x3A",
+        "unit_id": "2",
+        "commandDelay": "1",
+        "clientTimeout": "1000",
+        "reconnectOnTimeout": true,
+        "reconnectTimeout": "1000",
+        "parallelUnitIdsAllowed": true,
+        "showErrors": false,
+        "showWarnings": true,
+        "showLogs": true
+    },
+    {
+        "id": "99feda347ad40d85",
+        "type": "function",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "Hold and Compare Data",
+        "func": "if (!context.apiData) {\n    context.apiData = null;\n    context.countT = null;\n    context.wtt = null;\n    context.statework = null;\n    context.sendd = 0;\n}\n\nif (msg.topic === 'api') {\n    context.apiData = msg.target;\n    context.countT = 0;\n    console.log(context.apiData);\n    // context.statework = null;  //open if want it smooth pass danger*\n    context.sendd = 0;\n    return null;\n} else if (msg.topic === 'function') {\n    var functionData = msg.weight;\n    // var sendd = context.sendd;\n    if (functionData < 1) {\n        context.countT = 0;\n        return {\n            payload: `weighting: ${functionData} `,\n            topic: 'less than 5'\n        };\n    }\n    // else if(functionData >= 20 ){\n    //     context.countT = 0;\n    //     context.statework = null;\n    //     return {\n    //         payload: `weighting: ${functionData} `,\n    //         topic: 'please set data to 0'\n    //     };\n        \n    // }\n\n\n    if (context.apiData) {\n        var apiData = context.apiData;\n        var countT = context.countT;\n        var wttO = context.wtt;\n        var comparisonResult;\n        var apapi = null;\n        var statework = context.statework;\n\n        if (statework == \"sending\"){\n            console.log(\"statework == sending\");\n            msg.workStatus = \"wait\";\n            if (context.sendd >= 5 ){\n                msg.workStatus = \"req\";\n                context.statework = null;\n                console.log(\"statework == sending more than 10\");\n            }\n            context.sendd++;\n\n            return\n        }\n\n        var diff = Math.abs((apiData.wt * 100) - (functionData * 100));\n        if (diff <= (apiData.percentAcc * 100)) {\n            // Green\n            comparisonResult = `Match! API Data: ${apiData.wt}, Function Data: ${functionData}`;\n\n            // time = countT + 1 sec\n            if (countT >= 7) {\n                apapi = apiData;\n                msg.payload = {\n                    functionData: functionData,\n                    comparisonResult: comparisonResult\n                };\n                // msg.topic = 'send';\n                context.statework = \"sending\";\n                console.log(context.statework);\n                msg.workStatus = \"sending\";\n                msg.apapi = apapi;\n                \n                console.log(\" functionData\\n\", functionData)\n\n                // Reset context to wait for new API data\n                // context.apiData = null;\n                // context.countT = null;\n                // context.wtt = null;\n\n                console.log(new Date().toString());\n                console.log(\"\\n\\n\\n\");\n                return msg;\n            } else {\n                var diffT = null;\n                var diffA = null;\n                var notinoti = null;\n                var accacc = null;\n                \n                if (context.wtt) {\n                    diffT = Math.abs((context.wtt * 100) - (functionData * 100));\n                    diffA = Math.abs((context.wtt * 100) - (apiData.wt * 100));\n\n                    console.log(\"T T T context.wtt\")\n                } else {\n                    console.log(\"X X X context.wtt\")\n                }\n\n\n\n\n\n                if (context.countT == 0) {\n                    context.countT++;\n                    context.wtt = functionData;\n                    console.log(\"first count\\n\")\n                    console.log(new Date().toString());\n                } else if (context.countT > 0 && diffT, diffA != null && diffA <= 100) {\n                    //can acc changed\n                    console.log(\" diffT <= acc\\n\", diffT)\n                    console.log(\" functionData\\n\", functionData)\n                    context.wtt = functionData;\n                    context.countT++;\n\n\n                } else if (context.countT > 0 && diffT, diffA != null && diffA > 100) {\n                    //over acc changed\n                    console.log(\" diffT > acc\\n\", diffT)\n                    console.log(\" functionData\\n\", functionData)\n\n                    context.wtt = functionData;\n                    context.countT = 0;\n\n\n                } else {\n                    console.log(\"tf\", diffT)\n                }\n            }\n            console.log(\"countT == >\", countT, \"\\n\\n\\n\\n\\n\")\n\n        } else if (diff <= (apiData.percentNoti * 100)) {\n            // Orange\n            comparisonResult = `Becareful! API Data: ${apiData.wt}, Function Data: ${functionData}`;\n            context.countT = 0;\n        } else {\n            // Red\n            comparisonResult = `No Match. API Data: ${apiData.wt}, Function Data: ${functionData}`;\n            context.countT = 0;\n        }\n\n\n        msg.payload = {\n            apiData: apiData,\n            functionData: functionData,\n            comparisonResult: comparisonResult\n        };\n        return msg;\n    } else {\n        context.statework = \"req\";\n        return {\n            payload: `Function Data: ${functionData} \\ncontext.apiData NO DATA`,\n            workStatus: 'req'\n        };\n    }\n}\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 420,
+        "wires": [
+            [
+                "9f24952fb698c544",
+                "24d0a2d341fa3b62",
+                "6dab0acefe8e8f86"
+            ]
+        ]
+    },
+    {
+        "id": "9f24952fb698c544",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1010,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "24d0a2d341fa3b62",
+        "type": "switch",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "trigger",
+        "property": "workStatus",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "req",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "sending",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 910,
+        "y": 360,
+        "wires": [
+            [
+                "01c94739962caee5"
+            ],
+            [
+                "a4bf2ab45513904d"
+            ]
+        ]
+    },
+    {
+        "id": "b47a504ccab0ef78",
+        "type": "inject",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "TriggerAPI",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 120,
+        "y": 360,
+        "wires": [
+            [
+                "01c94739962caee5"
+            ]
+        ]
+    },
+    {
+        "id": "d7a906840f82e414",
+        "type": "comment",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "continue",
+        "info": "after post or put \n    then ck statusCode if 200 \n    then recall api\n\nif Err \n    then noti \n    then check connect \n    by cal some 3 api \n\n    if network is ok\n        == api fail  contact admin\n    \n    if network is bad \n        == network is down\n        try to reconnect\n\n        if can reconnect \n            OK\n    \n\nhttps://inno-cons-gateway-2024-scale-commu-76f8pc8u.uc.gateway.dev/data?id=1&key=AIzaSyCuqyy0SqMJJXixIi_Nv9awd1EGHp8Mbsg\n",
+        "x": 1800,
+        "y": 20,
+        "wires": []
+    },
+    {
+        "id": "01c94739962caee5",
+        "type": "http request",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "api-->1",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://inno-cons-gateway-2024-scale-commu-76f8pc8u.uc.gateway.dev/data-scale-all?scale=1&key=AIzaSyCuqyy0SqMJJXixIi_Nv9awd1EGHp8Mbsg",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 320,
+        "y": 360,
+        "wires": [
+            [
+                "dc133a5b42d33721",
+                "dc10712f27400ad7"
+            ]
+        ]
+    },
+    {
+        "id": "dc133a5b42d33721",
+        "type": "function",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "getData",
+        "func": "let obj = JSON.parse(msg.payload)[0];\nmsg.apiData = obj;\nmsg.workStatus = \"working\";\nif (!obj) {\n    msg.topic = \"nowork\";\n    msg.ledstatus = \"9999\"\n    return msg\n}\n\nlet w = obj.amount;\nlet no = obj.per_noti ? obj.per_noti : 80;\nlet acc = obj.per_acc ? obj.per_acc: 5;\n\nlet calNo = 0;\nlet calAcc = 0;\nif (msg.payload) {\n    calNo = w - Math.ceil((no / 100) * w);\n    calAcc = Math.ceil((acc / 100) * w);\n\n    msg.target = {\n        id_work: obj.id_scale_wait,\n        id_scale: obj.scale_id,\n        station_id: obj.station_id,\n        wt: w,\n        percentNoti: calNo,\n        percentAcc: calAcc\n    };\n\n    msg.payload = \"\";\n    msg.topic = \"api\";\n    msg.ledstatus = \"0100\"\n\n}\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 360,
+        "wires": [
+            [
+                "0fe5965e4f5fe67d"
+            ]
+        ]
+    },
+    {
+        "id": "dc10712f27400ad7",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 390,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "8641987360d581cd",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "NO NO led nowork",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 730,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "a4bf2ab45513904d",
+        "type": "function",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "Save URL",
+        "func": "const apiKey = 'AIzaSyCuqyy0SqMJJXixIi_Nv9awd1EGHp8Mbsg';\nconst baseUrl = 'https://inno-cons-gateway-2024-scale-commu-76f8pc8u.uc.gateway.dev/data-scale-today';\nconst id_work = msg.apapi.id_work;\nconst weight = msg.weight;\nconst scale = msg.apapi.id_scale;\n\nif (id_work && weight && scale) {\n    msg.url = `${baseUrl}?work=${id_work}&weight=${weight}&scale=${scale}&key=${apiKey}`;\n} else {\n    return null;\n}\n\n// if (msg.workStatus == \"sending\") {\n//     console.log(msg.workStatus);\n//     return null;\n// }\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1070,
+        "y": 380,
+        "wires": [
+            [
+                "ccae4866ba24b6d4"
+            ]
+        ]
+    },
+    {
+        "id": "ccae4866ba24b6d4",
+        "type": "http request",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "{{{url}}}",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1270,
+        "y": 380,
+        "wires": [
+            [
+                "ca48ca6b7f573792",
+                "a773b78cc01ec0de"
+            ]
+        ]
+    },
+    {
+        "id": "ad220125edb657b8",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1470,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "0fe5965e4f5fe67d",
+        "type": "switch",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "check",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "api",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "nowork",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 550,
+        "y": 300,
+        "wires": [
+            [
+                "99feda347ad40d85",
+                "d55a0a791e606160"
+            ],
+            [
+                "8641987360d581cd",
+                "8a6a4c83faa40ade"
+            ]
+        ]
+    },
+    {
+        "id": "ca48ca6b7f573792",
+        "type": "function",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "led status",
+        "func": "let obj = JSON.parse(msg.payload);\n\n// Extract the message string\nlet messageString = obj.message;\n\n// Split the message string to extract useful information\nlet matches = messageString.match(/\\d+/g);\nlet messageDetails = {\n    rowsMatched: parseInt(matches[0], 10),\n    rowsChanged: parseInt(matches[1], 10),\n    warnings: parseInt(matches[2], 10)\n};\n\n// Construct the response object\nmsg.response = {\n    ...obj,\n    message: messageDetails\n};\n\nmsg.payload = \"\";\n\n\nif (msg.response.changedRows == 1 && msg.response.message.rowsMatched == 1 && msg.response.message.rowsChanged == 1) {\n    msg.ledstatus = \"1111\";\n\n} else if (msg.response.changedRows !== 1) {\n    msg.ledstatus = \"0000\";\n\n} else if (msg.response.message.rowsMatched !== 1) {\n    msg.ledstatus = \"0001\";\n\n} else if (msg.response.message.rowsChanged !== 1) {\n    msg.ledstatus = \"0010\";\n\n} else {\n    msg.ledstatus = \"????\";\n}\n\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1480,
+        "y": 380,
+        "wires": [
+            [
+                "ad220125edb657b8",
+                "dba1158c61204d2f"
+            ]
+        ]
+    },
+    {
+        "id": "a773b78cc01ec0de",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1310,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "dba1158c61204d2f",
+        "type": "switch",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "property": "ledstatus",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "1111",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "0000",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "0001",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "0010",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "????",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 5,
+        "x": 1670,
+        "y": 360,
+        "wires": [
+            [
+                "db2d37464f5187df"
+            ],
+            [],
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "d55a0a791e606160",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "led api red",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 710,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "07ef5d134d39d65a",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "5",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 420,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "74a1eb5e0f024381",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "6",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 440,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "529c59fa0b21099c",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "13",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 460,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "db2d37464f5187df",
+        "type": "delay",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1140,
+        "y": 320,
+        "wires": [
+            [
+                "01c94739962caee5"
+            ]
+        ]
+    },
+    {
+        "id": "8a6a4c83faa40ade",
+        "type": "delay",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 740,
+        "y": 180,
+        "wires": [
+            [
+                "01c94739962caee5"
+            ]
+        ]
+    },
+    {
+        "id": "f2ef452a030b2607",
+        "type": "trigger",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "WatchDog",
+        "op1": "",
+        "op2": "",
+        "op1type": "nul",
+        "op2type": "date",
+        "duration": "3",
+        "extend": true,
+        "overrideDelay": false,
+        "units": "s",
+        "reset": "",
+        "bytopic": "all",
+        "topic": "topic",
+        "outputs": 1,
+        "x": 650,
+        "y": 480,
+        "wires": [
+            [
+                "5de575d53249d582"
+            ]
+        ]
+    },
+    {
+        "id": "91f30a14d26ead6c",
+        "type": "serial in",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "Serial In",
+        "serial": "serial-config-id",
+        "x": 120,
+        "y": 520,
+        "wires": [
+            [
+                "8827d65a39d44399",
+                "a67ce98eca392e54"
+            ]
+        ]
+    },
+    {
+        "id": "8827d65a39d44399",
+        "type": "function",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "group & match",
+        "func": "if (!context.buffer) {\n    context.buffer = \"\";\n}\ncontext.buffer += msg.payload;\n\nif (msg.payload === \"\\n\" || msg.payload === \"\\r\") {\n    var completeMessage = context.buffer.trim();  // Remove whitespace\n    context.buffer = \"\";  // Clear the buffer for the next message\n    msg.payload = completeMessage;\n\n    \n    let payload = msg.payload;\n    let match = payload.match(/(TS|PT),GS\\s+(\\d+\\.\\d+),kg/);\n    // let match = completeMessage.match(/(TS|PT),GS\\s+(\\d+\\.\\d+),kg/);\n    if (match) {\n        let type = match[1];\n        let value = parseFloat(match[2]);\n        msg.payload = {\n            type: type,\n            value: value\n        };\n    } else {\n        msg.payload = null;\n    }\n\n    return msg;\n} else {\n    return null;\n}\n\n\n\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 260,
+        "y": 480,
+        "wires": [
+            [
+                "b1b72e7dd04df534",
+                "9702a42f22713442"
+            ]
+        ]
+    },
+    {
+        "id": "b1b72e7dd04df534",
+        "type": "function",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "format output",
+        "func": "var payload = msg.payload ;\n\nif(payload){\n    msg.weight = payload.value;\n    msg.topic = \"function\";\n    msg.ledstatus = \"1000\"\n\n}else{\n    return null;\n}\n\n\n\n\n\n\n\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 410,
+        "y": 440,
+        "wires": [
+            [
+                "f2ef452a030b2607",
+                "5eb8ef5c58104673",
+                "99feda347ad40d85"
+            ]
+        ]
+    },
+    {
+        "id": "5de575d53249d582",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "led scale state",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 760,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "5eb8ef5c58104673",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "Debug",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 470,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "9702a42f22713442",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "Debug",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 350,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "9a785284576824b6",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "5",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 920,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "a99bd7bda308fb7f",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "6",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 940,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "920a28bf4dc6fc63",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "13",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 960,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "d3d50c6dbc0a5049",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "5",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 1080,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "3f098244936ee37e",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "6",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 1100,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "88a4edb0d557e06d",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "13",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 1120,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "8ba19f2417bcb9ca",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "5",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 500,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "2971096ee638897f",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "6",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 520,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "82734a94131081b0",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "13",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 540,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "c1b82d99c63f74fe",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "5",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 760,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "6f88ce594086fdb9",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "6",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 780,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "0cb4f2c162a12685",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "13",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 800,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "e1af7ce5c6565e95",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "5",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 1540,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "e55d159cf455b92f",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "6",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 1560,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "9c28de807a0e3199",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "13",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 1580,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "10106c9a6d34397b",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "5",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 1560,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "3580b7877a6f3905",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "6",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 1580,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "d017894b5ac857cb",
+        "type": "rpi-gpio out",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "pin": "13",
+        "set": true,
+        "level": "1",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 1600,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "1bb4c4c1547c7cc3",
+        "type": "http request",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "{{{url}}}",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1150,
+        "y": 540,
+        "wires": [
+            [
+                "fb14913d22445634"
+            ]
+        ]
+    },
+    {
+        "id": "6dab0acefe8e8f86",
+        "type": "function",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "Construct URL",
+        "func": "\nif (msg.topic == \"function\" && (!msg.workStatus || msg.workStatus !== \"sending\")){\n    const apiKey = 'AIzaSyCuqyy0SqMJJXixIi_Nv9awd1EGHp8Mbsg';\n    const baseUrl = 'https://inno-cons-gateway-2024-scale-commu-76f8pc8u.uc.gateway.dev/data-update-rt';\n    const id_work = msg.payload.apiData.id_work;\n    const weight = msg.weight;\n    const scale = msg.payload.apiData.id_scale;\n\n    if (id_work && weight && scale) {\n        msg.url = `${baseUrl}?work=${id_work}&weight=${weight}&scale=${scale}&key=${apiKey}`;\n    } else {\n        return null;\n    }\n\n    // if (msg.workStatus == \"sending\") {\n    //     console.log(msg.workStatus);\n    //     return null;\n    // }\n    return msg;\n}else if(msg.topic == \"less than 5\"){\n    return null\n}else{\n    return console.log(\"ERROR UPDATE RT -->\",msg.topic)\n}\n",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 940,
+        "y": 480,
+        "wires": [
+            [
+                "1bb4c4c1547c7cc3"
+            ]
+        ]
+    },
+    {
+        "id": "fb14913d22445634",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "UP_RT",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1300,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "a67ce98eca392e54",
+        "type": "debug",
+        "z": "d4b2dfd3ca24fca8",
+        "name": "debug 1",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 220,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "b96bfa93d40db296",
+        "type": "function",
+        "z": "aa42eccbb313314a",
+        "name": "Generate Weight Data",
+        "func": "if (!context.weight) {\n    context.weight = 0;\n    context.increaseRate = Math.floor(Math.random() * 10);\n}\n\nconst maxWeight = 100.0;\nconst incrementThreshold = 100.0;\n\ncontext.weight += context.increaseRate;\n\nif (context.weight >= incrementThreshold) {\n    context.increaseRate = Math.random() * 0.5 + 0.1;\n    context.weight = 0;\n}\n\nconst weight = Math.min(context.weight, maxWeight);\n\nconst payload = `PT,GS      ${weight.toFixed(2)},kg`;\n\nmsg.payload = payload;\nmsg.weight = weight;\nmsg.topic = \"function\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 40,
+        "wires": [
+            [
+                "d001ea193bd0a708"
+            ]
+        ]
+    },
+    {
+        "id": "5338590fa0481f22",
+        "type": "function",
+        "z": "aa42eccbb313314a",
+        "name": "Hold and Compare Data",
+        "func": "if (!context.apiData) {\n    context.apiData = null;\n    context.countT = null;\n    context.wtt = null;\n    context.statework = null;\n}\n\nif (msg.topic === 'api') {\n    context.apiData = msg.target;\n    context.countT = 0;\n    console.log(context.apiData);\n    context.statework = null;\n    return null;\n} else if (msg.topic === 'function') {\n    var functionData = msg.weight;\n    if (functionData < 5) {\n        context.countT = 0;\n        return {\n            payload: `weighting: ${functionData} `,\n            topic: 'less than 5'\n        };\n    }\n\n\n    if (context.apiData) {\n        var apiData = context.apiData;\n        var countT = context.countT;\n        var wttO = context.wtt;\n        var comparisonResult;\n        var apapi = null;\n        var statework = context.statework;\n\n        if (statework == \"sending\"){\n            console.log(\"statework == sending\");\n            msg.workStatus = \"wait\";\n            return\n        }\n\n        var diff = Math.abs((apiData.wt * 100) - (functionData * 100));\n        if (diff <= (apiData.percentAcc * 100)) {\n            // Green\n            comparisonResult = `Match! API Data: ${apiData.wt}, Function Data: ${functionData}`;\n\n            if (countT >= 5) {\n                apapi = apiData;\n                msg.payload = {\n                    functionData: functionData,\n                    comparisonResult: comparisonResult\n                };\n                // msg.topic = 'send';\n                context.statework = \"sending\";\n                console.log(context.statework);\n                msg.workStatus = \"sending\";\n                msg.apapi = apapi;\n\n                // Reset context to wait for new API data\n                // context.apiData = null;\n                // context.countT = null;\n                // context.wtt = null;\n\n                return msg;\n            } else {\n                var diffT = null;\n                var diffA = null;\n                var notinoti = null;\n                var accacc = null;\n                \n                if (context.wtt) {\n                    diffT = Math.abs((context.wtt * 100) - (functionData * 100));\n                    diffA = Math.abs((context.wtt * 100) - (apiData.wt * 100));\n\n                    console.log(\"T T T context.wtt\")\n                } else {\n                    console.log(\"X X X context.wtt\")\n                }\n\n\n\n\n\n                if (context.countT == 0) {\n                    context.countT++;\n                    context.wtt = functionData;\n                    console.log(\"first count\\n\")\n                } else if (context.countT > 0 && diffT, diffA != null ) {\n                    //can acc changed\n                    console.log(\" diffT <= 0.5\\n\", diffT)\n                    context.wtt = functionData;\n                    context.countT++;\n\n\n                } else if (context.countT > 0 && diffT, diffA != null ) {\n                    //over acc changed\n                    console.log(\" diffT > 0.5\\n\", diffT)\n                    context.wtt = functionData;\n                    context.countT = 0;\n\n\n                } else {\n                    console.log(\"tf\", diffT)\n                }\n            }\n            console.log(\"countT == >\", countT, \"\\n\\n\\n\\n\\n\")\n\n        } else if (diff <= (apiData.percentNoti * 100)) {\n            // Orange\n            comparisonResult = `Becareful! API Data: ${apiData.wt}, Function Data: ${functionData}`;\n            context.countT = 0;\n        } else {\n            // Red\n            comparisonResult = `No Match. API Data: ${apiData.wt}, Function Data: ${functionData}`;\n            context.countT = 0;\n        }\n\n\n        msg.payload = {\n            apiData: apiData,\n            functionData: functionData,\n            comparisonResult: comparisonResult\n        };\n        return msg;\n    } else {\n        context.statework = \"req\";\n        return {\n            payload: `Function Data: ${functionData} \\ncontext.apiData NO DATA`,\n            workStatus: 'req'\n        };\n    }\n}\nreturn null;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 420,
+        "wires": [
+            [
+                "a33515aaaeff5652",
+                "fc24a764ec22269e"
+            ]
+        ]
+    },
+    {
+        "id": "246f63fc5ce08392",
+        "type": "inject",
+        "z": "aa42eccbb313314a",
+        "name": "Every 1 Second",
+        "props": [],
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": "1",
+        "topic": "",
+        "x": 490,
+        "y": 40,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "a33515aaaeff5652",
+        "type": "debug",
+        "z": "aa42eccbb313314a",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 930,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "fc24a764ec22269e",
+        "type": "switch",
+        "z": "aa42eccbb313314a",
+        "name": "trigger",
+        "property": "workStatus",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "req",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "sending",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 910,
+        "y": 360,
+        "wires": [
+            [
+                "748ed04a4d217b98"
+            ],
+            [
+                "d3333fe451607be9"
+            ]
+        ]
+    },
+    {
+        "id": "2e28b673d9bafb2e",
+        "type": "inject",
+        "z": "aa42eccbb313314a",
+        "name": "TriggerAPI",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 160,
+        "y": 320,
+        "wires": [
+            [
+                "748ed04a4d217b98"
+            ]
+        ]
+    },
+    {
+        "id": "89724157bede416a",
+        "type": "http request",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://htt------pbin.org/post",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "data",
+                "valueType": "msg",
+                "valueValue": "weight"
+            }
+        ],
+        "x": 1630,
+        "y": 60,
+        "wires": [
+            [
+                "25c09cab1336f53e"
+            ]
+        ]
+    },
+    {
+        "id": "d001ea193bd0a708",
+        "type": "debug",
+        "z": "aa42eccbb313314a",
+        "name": "Debug",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 950,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "ac4e335c9b642949",
+        "type": "inject",
+        "z": "aa42eccbb313314a",
+        "name": "119",
+        "props": [
+            {
+                "p": "weight",
+                "v": "119",
+                "vt": "num"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "function",
+        "x": 150,
+        "y": 400,
+        "wires": [
+            [
+                "5338590fa0481f22",
+                "2daee30f105cfa3e"
+            ]
+        ]
+    },
+    {
+        "id": "63061a64a04675a3",
+        "type": "inject",
+        "z": "aa42eccbb313314a",
+        "name": "200",
+        "props": [
+            {
+                "p": "weight",
+                "v": "200",
+                "vt": "num"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "function",
+        "x": 150,
+        "y": 440,
+        "wires": [
+            [
+                "5338590fa0481f22",
+                "2daee30f105cfa3e"
+            ]
+        ]
+    },
+    {
+        "id": "9492885f066693f6",
+        "type": "inject",
+        "z": "aa42eccbb313314a",
+        "name": "56.3",
+        "props": [
+            {
+                "p": "weight",
+                "v": "56.3",
+                "vt": "num"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "function",
+        "x": 150,
+        "y": 480,
+        "wires": [
+            [
+                "5338590fa0481f22",
+                "2daee30f105cfa3e"
+            ]
+        ]
+    },
+    {
+        "id": "4e0f39a965d60ed5",
+        "type": "inject",
+        "z": "aa42eccbb313314a",
+        "name": "50",
+        "props": [
+            {
+                "p": "weight",
+                "v": "90",
+                "vt": "num"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "function",
+        "x": 150,
+        "y": 520,
+        "wires": [
+            [
+                "5338590fa0481f22",
+                "2daee30f105cfa3e"
+            ]
+        ]
+    },
+    {
+        "id": "cc8876e34201fa97",
+        "type": "inject",
+        "z": "aa42eccbb313314a",
+        "name": "2",
+        "props": [
+            {
+                "p": "weight",
+                "v": "2",
+                "vt": "num"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "function",
+        "x": 150,
+        "y": 560,
+        "wires": [
+            [
+                "5338590fa0481f22",
+                "2daee30f105cfa3e"
+            ]
+        ]
+    },
+    {
+        "id": "f883226c466499c6",
+        "type": "http request",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "method": "use",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "",
+                "valueType": "other",
+                "valueValue": ""
+            }
+        ],
+        "x": 1290,
+        "y": 40,
+        "wires": [
+            [
+                "13cba4e6c7a1b00f"
+            ]
+        ]
+    },
+    {
+        "id": "8867afdf5f39eee7",
+        "type": "change",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "url",
+                "pt": "msg",
+                "to": "https://catfact.ninja/fact",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "method",
+                "pt": "msg",
+                "to": "GET",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1100,
+        "y": 40,
+        "wires": [
+            [
+                "f883226c466499c6"
+            ]
+        ]
+    },
+    {
+        "id": "13cba4e6c7a1b00f",
+        "type": "debug",
+        "z": "aa42eccbb313314a",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1450,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "d8b2e7e27de6b064",
+        "type": "inject",
+        "z": "aa42eccbb313314a",
+        "name": "TriggerAPI",
+        "props": [
+            {
+                "p": "target.wt",
+                "v": "0.00",
+                "vt": "num"
+            },
+            {
+                "p": "target.percentNoti",
+                "v": "0.00",
+                "vt": "num"
+            },
+            {
+                "p": "target.percentAcc",
+                "v": "0.00",
+                "vt": "num"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 940,
+        "y": 40,
+        "wires": [
+            [
+                "8867afdf5f39eee7"
+            ]
+        ]
+    },
+    {
+        "id": "b296e0d220e68c9a",
+        "type": "debug",
+        "z": "aa42eccbb313314a",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1970,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "25c09cab1336f53e",
+        "type": "switch",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "property": "statusCode",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "200",
+                "vt": "num"
+            },
+            {
+                "t": "neq",
+                "v": "200",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 1790,
+        "y": 60,
+        "wires": [
+            [
+                "b296e0d220e68c9a"
+            ],
+            [
+                "b296e0d220e68c9a"
+            ]
+        ]
+    },
+    {
+        "id": "2a7dbfd28e54e4d3",
+        "type": "comment",
+        "z": "aa42eccbb313314a",
+        "name": "continue",
+        "info": "after post or put \n    then ck statusCode if 200 \n    then recall api\n\nif Err \n    then noti \n    then check connect \n    by cal some 3 api \n\n    if network is ok\n        == api fail  contact admin\n    \n    if network is bad \n        == network is down\n        try to reconnect\n\n        if can reconnect \n            OK\n    \n\nhttps://inno-cons-gateway-2024-scale-commu-76f8pc8u.uc.gateway.dev/data?id=1&key=AIzaSyCuqyy0SqMJJXixIi_Nv9awd1EGHp8Mbsg\n",
+        "x": 1800,
+        "y": 20,
+        "wires": []
+    },
+    {
+        "id": "748ed04a4d217b98",
+        "type": "http request",
+        "z": "aa42eccbb313314a",
+        "name": "api-->1",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "https://inno-cons-gateway-2024-scale-commu-76f8pc8u.uc.gateway.dev/data-scale-all?scale=1&key=AIzaSyCuqyy0SqMJJXixIi_Nv9awd1EGHp8Mbsg",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 320,
+        "y": 360,
+        "wires": [
+            [
+                "26137754a7ab4f91",
+                "d4e8b7c297f19a36"
+            ]
+        ]
+    },
+    {
+        "id": "26137754a7ab4f91",
+        "type": "function",
+        "z": "aa42eccbb313314a",
+        "name": "getData",
+        "func": "let obj = JSON.parse(msg.payload)[0];\nmsg.apiData = obj;\nmsg.workStatus = \"working\";\nif (!obj) {\n    msg.topic = \"nowork\";\n    msg.ledstatus = \"9999\"\n    return msg\n}\n\nlet w = obj.amount;\nlet no = obj.per_noti ? obj.per_noti : 80;\nlet acc = obj.per_acc ? obj.per_acc: 5;\n\nlet calNo = 0;\nlet calAcc = 0;\nif (msg.payload) {\n    calNo = w - Math.ceil((no / 100) * w);\n    calAcc = Math.ceil((acc / 100) * w);\n\n    msg.target = {\n        id_work: obj.id,\n        id_scale: obj.id_scale_wait,\n        station_id: obj.station_id,\n        wt: w,\n        percentNoti: calNo,\n        percentAcc: calAcc\n    };\n\n    msg.payload = \"\";\n    msg.topic = \"api\";\n    msg.ledstatus = \"1111\"\n\n}\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 360,
+        "wires": [
+            [
+                "4005cb718f98a39b"
+            ]
+        ]
+    },
+    {
+        "id": "d4e8b7c297f19a36",
+        "type": "debug",
+        "z": "aa42eccbb313314a",
+        "name": "Debug",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 390,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "23909a793a495113",
+        "type": "debug",
+        "z": "aa42eccbb313314a",
+        "name": "NO NO led nowork",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 730,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "d3333fe451607be9",
+        "type": "function",
+        "z": "aa42eccbb313314a",
+        "name": "Construct URL",
+        "func": "const apiKey = 'AIzaSyCuqyy0SqMJJXixIi_Nv9awd1EGHp8Mbsg';\nconst baseUrl = 'https://inno-cons-gateway-2024-scale-commu-76f8pc8u.uc.gateway.dev/data-scale-today';\nconst id_work = msg.apapi.id_work;\nconst weight = msg.weight;\nconst scale = msg.apapi.id_scale;\n\nif (id_work && weight && scale) {\n    msg.url = `${baseUrl}?work=${id_work}&weight=${weight}&scale=${scale}&key=${apiKey}`;\n} else {\n    return null;\n}\n\n// if (msg.workStatus == \"sending\") {\n//     console.log(msg.workStatus);\n//     return null;\n// }\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1080,
+        "y": 380,
+        "wires": [
+            [
+                "52c8a423a738690c"
+            ]
+        ]
+    },
+    {
+        "id": "52c8a423a738690c",
+        "type": "http request",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "method": "GET",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "{{{url}}}",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1270,
+        "y": 380,
+        "wires": [
+            [
+                "7a3b24969e53556f",
+                "f88357c0ab2e7528"
+            ]
+        ]
+    },
+    {
+        "id": "23a34078bd5b9682",
+        "type": "debug",
+        "z": "aa42eccbb313314a",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1470,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "4005cb718f98a39b",
+        "type": "switch",
+        "z": "aa42eccbb313314a",
+        "name": "check",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "api",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "nowork",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 550,
+        "y": 320,
+        "wires": [
+            [
+                "5338590fa0481f22",
+                "6b0c26a3f8321fae"
+            ],
+            [
+                "23909a793a495113",
+                "324fa4efc77ed682"
+            ]
+        ]
+    },
+    {
+        "id": "7a3b24969e53556f",
+        "type": "function",
+        "z": "aa42eccbb313314a",
+        "name": "led status",
+        "func": "let obj = JSON.parse(msg.payload);\n\n// Extract the message string\nlet messageString = obj.message;\n\n// Split the message string to extract useful information\nlet matches = messageString.match(/\\d+/g);\nlet messageDetails = {\n    rowsMatched: parseInt(matches[0], 10),\n    rowsChanged: parseInt(matches[1], 10),\n    warnings: parseInt(matches[2], 10)\n};\n\n// Construct the response object\nmsg.response = {\n    ...obj,\n    message: messageDetails\n};\n\nmsg.payload = \"\";\n\n\nif (msg.response.changedRows == 1 && msg.response.message.rowsMatched == 1 && msg.response.message.rowsChanged == 1) {\n    msg.ledstatus = \"1111\";\n\n} else if (msg.response.changedRows !== 1) {\n    msg.ledstatus = \"0000\";\n\n} else if (msg.response.message.rowsMatched !== 1) {\n    msg.ledstatus = \"0001\";\n\n} else if (msg.response.message.rowsChanged !== 1) {\n    msg.ledstatus = \"0010\";\n\n} else {\n    msg.ledstatus = \"????\";\n}\n\ncontext.apiData = null;\ncontext.countT = null;\ncontext.wtt = null;\ncontext.statework = null;\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1440,
+        "y": 380,
+        "wires": [
+            [
+                "23a34078bd5b9682",
+                "fbd40b45d3c4e913"
+            ]
+        ]
+    },
+    {
+        "id": "f88357c0ab2e7528",
+        "type": "debug",
+        "z": "aa42eccbb313314a",
+        "name": "Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1310,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "fbd40b45d3c4e913",
+        "type": "switch",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "property": "ledstatus",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "1111",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "0000",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "0001",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "0010",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "????",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 5,
+        "x": 1590,
+        "y": 360,
+        "wires": [
+            [
+                "3e6a52a54f48250d"
+            ],
+            [],
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "6b0c26a3f8321fae",
+        "type": "debug",
+        "z": "aa42eccbb313314a",
+        "name": "led api red",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 710,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "3e6a52a54f48250d",
+        "type": "delay",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1140,
+        "y": 320,
+        "wires": [
+            [
+                "748ed04a4d217b98"
+            ]
+        ]
+    },
+    {
+        "id": "324fa4efc77ed682",
+        "type": "delay",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 740,
+        "y": 180,
+        "wires": [
+            [
+                "748ed04a4d217b98"
+            ]
+        ]
+    },
+    {
+        "id": "2daee30f105cfa3e",
+        "type": "delay",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 680,
+        "y": 520,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "db0a6c1a76e4b3c6",
+        "type": "trigger",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "op1": "1",
+        "op2": "0",
+        "op1type": "str",
+        "op2type": "str",
+        "duration": "0",
+        "extend": false,
+        "overrideDelay": false,
+        "units": "ms",
+        "reset": "",
+        "bytopic": "topic",
+        "topic": "topic",
+        "outputs": 1,
+        "x": 680,
+        "y": 580,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "5f7593a87e2d6fbd",
+        "type": "inject",
+        "z": "aa42eccbb313314a",
+        "name": "Simulate Data",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 210,
+        "y": 780,
+        "wires": [
+            [
+                "9ce889e55baf4270"
+            ]
+        ]
+    },
+    {
+        "id": "e672a629d0b4c625",
+        "type": "rpi-gpio out",
+        "z": "aa42eccbb313314a",
+        "name": "",
+        "pin": "5",
+        "set": true,
+        "level": "0",
+        "freq": "",
+        "out": "out",
+        "bcm": true,
+        "x": 820,
+        "y": 780,
+        "wires": []
+    },
+    {
+        "id": "9ce889e55baf4270",
+        "type": "trigger",
+        "z": "aa42eccbb313314a",
+        "name": "WatchDog",
+        "op1": "",
+        "op2": "",
+        "op1type": "nul",
+        "op2type": "date",
+        "duration": "3",
+        "extend": true,
+        "overrideDelay": false,
+        "units": "s",
+        "reset": "",
+        "bytopic": "all",
+        "topic": "topic",
+        "outputs": 1,
+        "x": 630,
+        "y": 780,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "9752303a946d36cb",
+        "type": "modbus-read",
+        "z": "2f13d513c1bd14ae",
+        "name": "hf2211",
+        "topic": "hf2211",
+        "showStatusActivities": false,
+        "logIOActivities": false,
+        "showErrors": false,
+        "showWarnings": true,
+        "unitid": "",
+        "dataType": "HoldingRegister",
+        "adr": "1",
+        "quantity": "10",
+        "rate": "1",
+        "rateUnit": "s",
+        "delayOnStart": false,
+        "startDelayTime": "",
+        "server": "f683b4631d9ed22b",
+        "useIOFile": false,
+        "ioFile": "",
+        "useIOForPayload": false,
+        "emptyMsgOnFail": false,
+        "x": 170,
+        "y": 180,
+        "wires": [
+            [
+                "8b0e5476bf9cf9a2"
+            ],
+            [
+                "48fca2c5b2322cae"
+            ]
+        ]
+    },
+    {
+        "id": "8b0e5476bf9cf9a2",
+        "type": "debug",
+        "z": "2f13d513c1bd14ae",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "48fca2c5b2322cae",
+        "type": "debug",
+        "z": "2f13d513c1bd14ae",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 360,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "02643d7758fa08b6",
+        "type": "modbus-read",
+        "z": "2f13d513c1bd14ae",
+        "name": "hf2211A",
+        "topic": "hf2211A",
+        "showStatusActivities": false,
+        "logIOActivities": false,
+        "showErrors": false,
+        "showWarnings": true,
+        "unitid": "",
+        "dataType": "InputRegister",
+        "adr": "0",
+        "quantity": "1",
+        "rate": "1",
+        "rateUnit": "s",
+        "delayOnStart": false,
+        "startDelayTime": "",
+        "server": "b62f8acee78410b1",
+        "useIOFile": false,
+        "ioFile": "",
+        "useIOForPayload": false,
+        "emptyMsgOnFail": false,
+        "x": 200,
+        "y": 320,
+        "wires": [
+            [
+                "53ac26fefff542ba"
+            ],
+            [
+                "51f2a9af452382f8"
+            ]
+        ]
+    },
+    {
+        "id": "53ac26fefff542ba",
+        "type": "debug",
+        "z": "2f13d513c1bd14ae",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "51f2a9af452382f8",
+        "type": "debug",
+        "z": "2f13d513c1bd14ae",
+        "name": "debug 5",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "08f46c02935d7ad4",
+        "type": "tcp in",
+        "z": "2f13d513c1bd14ae",
+        "name": "",
+        "server": "client",
+        "host": "192.168.23.202",
+        "port": "502",
+        "datamode": "stream",
+        "datatype": "buffer",
+        "newline": "",
+        "topic": "",
+        "trim": false,
+        "base64": false,
+        "tls": "",
+        "x": 140,
+        "y": 460,
+        "wires": [
+            [
+                "dc3a5d6aefa1e457",
+                "ba92f75cb1db8a90",
+                "555ff7cb3352ba77"
+            ]
+        ]
+    },
+    {
+        "id": "dc3a5d6aefa1e457",
+        "type": "debug",
+        "z": "2f13d513c1bd14ae",
+        "name": "debug 6",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 360,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "ba92f75cb1db8a90",
+        "type": "debug",
+        "z": "2f13d513c1bd14ae",
+        "name": "debug 7",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "555ff7cb3352ba77",
+        "type": "debug",
+        "z": "2f13d513c1bd14ae",
+        "name": "debug 8",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "jsonata",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 340,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "30938d9092f7e1c3",
+        "type": "tcp in",
+        "z": "2f13d513c1bd14ae",
+        "name": "",
+        "server": "client",
+        "host": "192.168.23.92",
+        "port": "502",
+        "datamode": "stream",
+        "datatype": "utf8",
+        "newline": "",
+        "topic": "",
+        "trim": false,
+        "base64": false,
+        "tls": "",
+        "x": 640,
+        "y": 440,
+        "wires": [
+            [
+                "91cc8a739beb91b1",
+                "21c52fa6dbe7e085",
+                "886343d6e93738df"
+            ]
+        ]
+    },
+    {
+        "id": "91cc8a739beb91b1",
+        "type": "debug",
+        "z": "2f13d513c1bd14ae",
+        "name": "debug 9",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 860,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "21c52fa6dbe7e085",
+        "type": "debug",
+        "z": "2f13d513c1bd14ae",
+        "name": "debug 10",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 880,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "886343d6e93738df",
+        "type": "debug",
+        "z": "2f13d513c1bd14ae",
+        "name": "debug 11",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "jsonata",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 840,
+        "y": 400,
+        "wires": []
+    }
+]
